@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>dingclone</title>
+  <style>
+    body {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas">canvas</canvas>
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext('2d');
+    console.log(canvas);
+    console.log(ctx);
+    let mousePosition;
+    let stack = [];
+
+    function draw() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvas.style.backgroundColor = "lightgray";
+      canvas.style.touchAction = "none";
+    }
+
+    function handleKeys(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key == 'z') {
+        console.log("undo");
+        let d = stack.pop();
+        console.log(stack.length);
+        ctx.clearRect(d.x, d.y, d.w, d.h);
+        if (stack.length > 0) {
+          for (let s of stack) {
+            console.log(s);
+            ctx.drawImage(s.i, s.x, s.y, s.w, s.h);
+          }
+        }
+      }
+    }
+
+    canvas.addEventListener('mousemove', function(event) {
+      mousePosition = { x: event.clientX, y: event.clientY };
+      // console.log('Mouse position: (' + mousePosition.x + ', ' + mousePosition.y + ')');
+    });
+
+    document.addEventListener('paste', function(event) {
+      let items = (event.clipboardData || event.originalEvent.clipboardData).items;
+      for (index in items) {
+        let item = items[index];
+        if (item.kind === 'file') {
+          let reader = new FileReader();
+          reader.onload = function(event) {
+            let img = new Image();
+            img.src = event.target.result;
+            img.onload = function() {
+              let w = img.naturalWidth, h = img.naturalHeight;
+              console.log(w, h);
+              if (w > 1000 || h > 1000) {
+                w = w * 0.5;
+                h = h * 0.5;
+              }
+              console.log(w, h);
+              ctx.drawImage(img, Math.floor(mousePosition.x - w / 2), Math.floor(mousePosition.y - h / 2), w, h);
+              stack.push({ x: Math.floor(mousePosition.x - w / 2), y: Math.floor(mousePosition.y - h / 2), w, h, i: img});
+            };
+          };
+          reader.readAsDataURL(item.getAsFile());
+        }
+      }
+    });
+
+    window.onload = function() {
+      draw();
+      window.addEventListener('keydown', handleKeys);
+    };
+  </script>
+</body>
+</html>
